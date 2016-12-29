@@ -1,0 +1,74 @@
+@nice-blue: #5B83AD;
+@light-blue: @nice-blue + #111;
+@white: #f2f2f2;
+@light-green:#6789AD;
+@import "sprite";
+
+.header {
+  color: @white;
+  .center;
+}
+.center{
+  margin:0 auto;
+}
+body{
+	background-color:@nice-blue;
+  .header;
+}
+h1,h2,h3,h4,h5{
+  font-weight:100;
+}
+.bordered {
+  border-top: dotted 1px black;
+  border-bottom: solid 2px black;
+}
+#menu a {
+  color: #111;
+  .bordered;
+}
+
+.post a {
+  .bordered;
+  .header;
+  transform: rotate(45deg);
+}
+
+.button{
+	&-off {
+    margin-top:20px;
+    .sprite(@off);
+  }
+  &-on {
+    margin-top:20px;
+    .sprite(@on);
+  }
+}
+
+.headers {
+  color: black;
+  .navigation {
+    font-size: 12px;
+  }
+  .logo {
+    width: 300px;
+  }
+}
+
+a{
+  color:blue;
+  &:hover{
+    color:@light-green;
+  }
+}
+.clearfix {
+  display: block;
+  zoom: 1;
+
+  &:after {
+    content: " ";
+    font-size: 0;
+    height: 0;
+    clear: both;
+    visibility: hidden;
+  }
+}
