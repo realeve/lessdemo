@@ -3,6 +3,7 @@ var gulp = require('gulp'),
 	concat = require('gulp-concat'),
 	sourcemaps = require('gulp-sourcemaps'),
 	babel = require('gulp-babel'),
+	babelHelpers = require('gulp-babel-external-helpers'),
 
 	//CSS/LESS/IMG
 	less = require('gulp-less'),
@@ -22,26 +23,24 @@ var gulp = require('gulp'),
 
 	//同步
 	runSequence = require('run-sequence'),
-	connect = require('gulp-connect');
+	connect = require('gulp-connect'),
+	plumber = require('gulp-plumber');
 
-var DEST = {
-		css: './dist/assets/css',
-		js: './dist/assets/js',
-		img: './dist/assets/img',
-		manifest: './src',
-		build: './dist/assets'
-	},
-	SRC = {
-		css: './src/assets/css',
-		js: './src/assets/js',
-		img: './src/assets/img',
-		imgDest: './develop/assets/img',
-		cssDest: './develop/assets/css',
-		jsDest: './develop/assets/js',
-		contentDest: './develop',
-		jsDevelop: './develop/assets/publish',
-		less: './src/less'
-	};
+var notify = require('gulp-notify');
+var onError = notify.onError({
+	title: 'Gulp',
+	subtitle: 'Failure!',
+	message: 'Error: <%= error.message %>',
+	sound: 'Beep'
+});
+
+var dirName = require('./settings/dirName.js');
+var SRC = dirName.SRC,
+	DEST = dirName.DEST;
+
+var getAssetsOrder = require('./settings/assetsOrder.js');
+var assetsListOrder = getAssetsOrder(SRC.css, SRC.jsDest);
+assetsListOrder.js = [SRC.jsDest + '/babelHelpers.js'].concat(assetsListOrder.js);
 
 /**
  * 文件复制
@@ -74,6 +73,9 @@ gulp.task('less', function() {
 	console.log('(1/4)正在编译less文件...');
 
 	return gulp.src(['src/less/*.less', '!src/less/sprite.less'])
+		.pipe(plumber({ //plumber触发错误提示
+			errorHandler: onError
+		}))
 		.pipe(less())
 		.pipe(autoprefixer({
 			browsers: ['last 2 versions', 'Android >= 4.0'],
@@ -86,7 +88,7 @@ gulp.task('less', function() {
 //合并css文件
 gulp.task('css', function() {
 	console.log('(1.5/4)正在组合CSS文件...');
-	return gulp.src(SRC.css + '/*.css')
+	return gulp.src(assetsListOrder.css)
 		.pipe(cleanCSS({
 			advanced: false,
 			compatibility: 'ie7',
@@ -99,18 +101,43 @@ gulp.task('css', function() {
 
 gulp.task('js', function() {
 	return gulp.src(SRC.js + '/*.js')
-		.pipe(babel({
-			presets: ['es2015']
+		.pipe(plumber({ //plumber触发错误提示
+			errorHandler: onError
 		}))
-		.pipe(sourcemaps.init()) //生成sourcemap
-		.pipe(uglify()) //压缩
+		.pipe(babel({
+			presets: [
+				'es2015', //转换es6代码
+				'stage-0', //指定转换es7代码的语法提案阶段
+			],
+			plugins: [
+				'transform-object-assign', //转换es6 Object.assign插件
+				'external-helpers', //将es6代码转换后使用的公用函数单独抽出来保存为babelHelpers
+				['transform-es2015-classes', {
+					"loose": false
+				}], //转换es6 class插件
+				['transform-es2015-modules-commonjs', {
+					"loose": false
+				}] //转换es6 module插件
+			]
+		}))
+		.pipe(babelHelpers('babelHelpers.js'))
+		.pipe(gulp.dest(SRC.jsDest));
+});
+
+gulp.task('concat-js', function() {
+	return gulp.src(assetsListOrder.js)
+		.pipe(plumber({ //plumber触发错误提示
+			errorHandler: onError
+		}))
+		//.pipe(sourcemaps.init()) //生成sourcemap
 		.pipe(jshint()) // 对这些更改过的文件做一些特殊的处理...
 		//.pipe(header('(function () {')) // 比如 jshinting ^^^
 		//.pipe(footer('})();')) // 增加一些类似模块封装的东西
 		.pipe(concat('index.js'))
-		.pipe(gulp.dest(SRC.jsDevelop)) //正式发布，无sourceMap
-		.pipe(sourcemaps.write())
 		.pipe(gulp.dest(SRC.jsDest)) //开发测试期间，有sourceMap
+		.pipe(uglify()) //压缩
+		.pipe(gulp.dest(SRC.jsDevelop)) //正式发布，无sourceMap
+		//.pipe(sourcemaps.write())
 		.pipe(connect.reload());
 });
 
@@ -149,7 +176,7 @@ gulp.task('sprite', function() {
 		.pipe(gulp.dest(SRC.less));
 });
 
-gulp.task("revreplace", function() {
+gulp.task("zip-html", function() {
 	console.log('(4/4)html压缩...');
 	var manifest = gulp.src(DEST.manifest + "/rev-manifest.json");
 	var options = {
@@ -182,7 +209,9 @@ gulp.task('connect', function() {
 //开发环境监测
 gulp.task('watch', function() {
 	gulp.watch(['./src/*.html'], ['copyhtml']);
-	gulp.watch(['./src/assets/**/*.js'], ['js']);
+	gulp.watch(['./src/assets/**/*.js'], function() {
+		runSequence('js', 'concat-js');
+	});
 	gulp.watch(['./src/less/*.less'], function() {
 		runSequence('less', 'css');
 	});
@@ -193,7 +222,7 @@ gulp.task('watch', function() {
 });
 
 gulp.task('default', function(callback) {
-	runSequence('clean', 'sprite', 'less', ['img', 'css', 'js'], 'revision', ['revreplace', 'handlejs', 'copyimg', 'copyhtml']);
+	runSequence('clean', 'sprite', 'less', ['img', 'css', 'js'], 'concat-js', 'revision', ['zip-html', 'handlejs', 'copyimg', 'copyhtml']);
 });
 
 gulp.task('dev', function(callback) {

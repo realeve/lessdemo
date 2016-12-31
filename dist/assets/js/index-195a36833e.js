@@ -1,2 +1,0 @@
-"use strict";document.querySelector("#test").innerText="该配合你演出的我却视而不见";var i=233,j=34;
-"use strict";var getRootPath2=function(t){var n=window.document.location.href,o=window.document.location.pathname,i=n.indexOf(o),e=n.substring(0,i),r=o.substring(0,o.substr(1).indexOf("/")+1);return 0===t?e+r:e};
