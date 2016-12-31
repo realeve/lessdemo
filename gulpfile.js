@@ -24,7 +24,14 @@ var gulp = require('gulp'),
 	//同步
 	runSequence = require('run-sequence'),
 	connect = require('gulp-connect'),
-	plumber = require('gulp-plumber');
+	plumber = require('gulp-plumber'),
+
+	//生产环境部署
+	gulpif = require('gulp-if'),
+	argv = require('yargs').argv;
+
+//是否为生产环境 加参数 -p
+var PRODUCTION = argv.p;
 
 var notify = require('gulp-notify');
 var onError = notify.onError({
@@ -51,15 +58,16 @@ gulp.task('copyjs', function() {
 });
 
 gulp.task('copyimg', function() {
-	gulp.src(SRC.less + '/*.png')
-		.pipe(gulp.dest(SRC.cssDest));
-
-	gulp.src(SRC.less + '/*.png')
-		.pipe(gulp.dest(DEST.css));
-
-	gulp.src(DEST.img + '/*.*')
-		.pipe(gulp.dest(SRC.imgDest))
-		.pipe(connect.reload());
+	if (PRODUCTION) {
+		gulp.src(SRC.less + '/*.png')
+			.pipe(gulp.dest(DEST.css));
+	} else {
+		gulp.src(SRC.img + '/*.*')
+			.pipe(gulp.dest(SRC.imgDest))
+			.pipe(connect.reload());
+		gulp.src(SRC.less + '/*.png')
+			.pipe(gulp.dest(SRC.cssDest));
+	}
 });
 
 gulp.task('copyhtml', function() {
@@ -89,16 +97,17 @@ gulp.task('less', function() {
 gulp.task('css', function() {
 	console.log('(1.5/4)正在组合CSS文件...');
 	return gulp.src(assetsListOrder.css)
-		.pipe(cleanCSS({
+		.pipe(gulpif(PRODUCTION, cleanCSS({
 			advanced: false,
 			compatibility: 'ie7',
 			keepBreaks: false
-		}))
+		})))
 		.pipe(concat('index' + '.css'))
 		.pipe(gulp.dest(SRC.cssDest))
 		.pipe(connect.reload());
 });
 
+//开发环境
 gulp.task('js', function() {
 	return gulp.src(SRC.js + '/*.js')
 		.pipe(plumber({ //plumber触发错误提示
@@ -107,6 +116,7 @@ gulp.task('js', function() {
 		.pipe(babel({
 			presets: [
 				'es2015', //转换es6代码
+				"es2016",
 				'stage-0', //指定转换es7代码的语法提案阶段
 			],
 			plugins: [
@@ -117,9 +127,62 @@ gulp.task('js', function() {
 				}], //转换es6 class插件
 				['transform-es2015-modules-commonjs', {
 					"loose": false
-				}] //转换es6 module插件
+				}], //转换es6 module插件
+
+				//'transform-runtime' //报 runtime错误
+
+				// , ["transform-regenerator", {
+				// 	asyncGenerators: false, // true by default
+				// 	generators: false, // true by default
+				// 	async: false // true by default
+				// }]
 			]
 		}))
+		.pipe(babelHelpers('babelHelpers.js'))
+		.pipe(gulp.dest(SRC.jsDest));
+});
+
+//生产环境
+gulp.task('browser-js', function() {
+
+	//require加载器(用babel会导致yield,generator等无法使用)
+	var babelify = require("babelify"),
+		source = require('vinyl-source-stream'),
+		buffer = require('vinyl-buffer'),
+		browserify = require('browserify');
+
+	var jsList = getAssetsOrder(SRC.css, SRC.js);
+	return browserify({
+			entries: jsList.js
+		})
+		.transform(babelify, {
+			presets: [
+				'es2015', //转换es6代码
+				"es2016",
+				'stage-0', //指定转换es7代码的语法提案阶段
+			],
+			plugins: [
+				'transform-object-assign', //转换es6 Object.assign插件
+				'external-helpers', //将es6代码转换后使用的公用函数单独抽出来保存为babelHelpers
+				['transform-es2015-classes', {
+					"loose": false
+				}], //转换es6 class插件
+				['transform-es2015-modules-commonjs', {
+					"loose": false
+				}], //转换es6 module插件
+				'transform-runtime', ['transform-regenerator', {
+					asyncGenerators: false, // true by default
+					generators: false, // true by default
+					async: false // true by default
+				}]
+			]
+		})
+		.bundle()
+		.pipe(plumber({ //plumber触发错误提示
+			errorHandler: onError
+		}))
+		.pipe(source('./index.js')) //将常规流转换为包含Stream的vinyl对象，并且重命名 //'./index.js'
+		.pipe(buffer()) //将vinyl对象内容中的Stream转换为Buffer
 		.pipe(babelHelpers('babelHelpers.js'))
 		.pipe(gulp.dest(SRC.jsDest));
 });
@@ -134,9 +197,9 @@ gulp.task('concat-js', function() {
 		//.pipe(header('(function () {')) // 比如 jshinting ^^^
 		//.pipe(footer('})();')) // 增加一些类似模块封装的东西
 		.pipe(concat('index.js'))
-		.pipe(gulp.dest(SRC.jsDest)) //开发测试期间，有sourceMap
-		.pipe(uglify()) //压缩
-		.pipe(gulp.dest(SRC.jsDevelop)) //正式发布，无sourceMap
+		.pipe(gulpif(!PRODUCTION, gulp.dest(SRC.jsDest))) //开发测试期间，有sourceMap
+		.pipe(gulpif(PRODUCTION, uglify())) //压缩
+		.pipe(gulpif(PRODUCTION, gulp.dest(SRC.jsDevelop))) //正式发布，无sourceMap
 		//.pipe(sourcemaps.write())
 		.pipe(connect.reload());
 });
@@ -222,7 +285,11 @@ gulp.task('watch', function() {
 });
 
 gulp.task('default', function(callback) {
-	runSequence('clean', 'sprite', 'less', ['img', 'css', 'js'], 'concat-js', 'revision', ['zip-html', 'handlejs', 'copyimg', 'copyhtml']);
+	if (PRODUCTION) {
+		runSequence('clean', 'sprite', 'less', ['img', 'css', 'browser-js'], 'concat-js', 'revision', ['zip-html', 'handlejs', 'copyimg', 'copyhtml']);
+	} else {
+		runSequence('clean', 'sprite', 'less', ['css', 'js'], 'concat-js', ['copyimg', 'copyhtml']);
+	}
 });
 
 gulp.task('dev', function(callback) {

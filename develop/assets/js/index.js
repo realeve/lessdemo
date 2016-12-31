@@ -261,6 +261,113 @@ try {
 
 var array = [2, 3, 5, 4, 5, 2, 2];
 console.log([].concat(babelHelpers.toConsumableArray(new Set(array))));
+
+var engines = new Set(["Gecko", "Trident", "Webkit", "Webkit"]);
+var _iteratorNormalCompletion5 = true;
+var _didIteratorError5 = false;
+var _iteratorError5 = undefined;
+
+try {
+	for (var _iterator5 = engines[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+		var e = _step5.value;
+
+		console.log(e);
+	}
+} catch (err) {
+	_didIteratorError5 = true;
+	_iteratorError5 = err;
+} finally {
+	try {
+		if (!_iteratorNormalCompletion5 && _iterator5.return) {
+			_iterator5.return();
+		}
+	} finally {
+		if (_didIteratorError5) {
+			throw _iteratorError5;
+		}
+	}
+}
+
+var es6 = {
+	edition: 6,
+	committee: "TC39",
+	standard: "ECMA-262"
+};
+
+for (var _e in es6) {
+	console.log(_e);
+}
+
+//需使用browserify加载
+// var myIterable = {};
+// myIterable[Symbol.iterator] = function*() {
+// 	yield 1;
+// 	yield 2;
+// 	yield 3;
+// };
+// console.log([...myIterable]);
+
+var test = 3234;
+console.log(test);
+
+//Promise 实例
+var promise = new Promise(function (resolve, reject) {
+	console.log('Promise');
+	resolve();
+});
+
+promise.then(function () {
+	console.log('成功的回调函数');
+});
+
+console.log('Hi!');
+
+var getJSON = function getJSON(url) {
+	var promise = new Promise(function (resolve, reject) {
+		var client = new XMLHttpRequest();
+		client.open("GET", url);
+		client.onreadystatechange = handler;
+		client.responseType = "json";
+		client.setRequestHeader("Accept", "application/json");
+		client.send();
+
+		function handler() {
+			if (this.readyState !== 4) {
+				return;
+			}
+			if (this.status == 200) {
+				resolve(this.response);
+			} else {
+				reject(new Error(this.statusText));
+			}
+		}
+	});
+	return promise;
+};
+
+getJSON("./assets/package.json").then(function (json) {
+	console.log(json);
+}, function (error) {
+	console.error(error);
+});
+
+var p1 = new Promise(function (resolve, reject) {
+	setTimeout(function () {
+		return reject(new Error('fail'));
+	}, 2000);
+});
+
+var p2 = new Promise(function (resolve, reject) {
+	setTimeout(function () {
+		return resolve(p1);
+	}, 1000);
+});
+
+p2.then(function (result) {
+	return console.log(result);
+}).catch(function (error) {
+	return console.log(error);
+});
 'use strict';
 
 var getRootPath2 = function getRootPath2(t) {
