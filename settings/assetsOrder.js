@@ -5,8 +5,8 @@ var index = (CSS_DIR, JS_DIR) => {
 			CSS_DIR + "/style.css"
 		],
 		js = [
-			JS_DIR + "/index.js",
-			JS_DIR + "/main.js"
+			//JS_DIR + "/main.js",
+			JS_DIR + "/index.js"
 		];
 	return {
 		css,

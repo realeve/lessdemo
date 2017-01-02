@@ -1,6 +1,30 @@
 (function (global) {
   var babelHelpers = global.babelHelpers = {};
 
+  babelHelpers.classCallCheck = function (instance, Constructor) {
+    if (!(instance instanceof Constructor)) {
+      throw new TypeError("Cannot call a class as a function");
+    }
+  };
+
+  babelHelpers.createClass = function () {
+    function defineProperties(target, props) {
+      for (var i = 0; i < props.length; i++) {
+        var descriptor = props[i];
+        descriptor.enumerable = descriptor.enumerable || false;
+        descriptor.configurable = true;
+        if ("value" in descriptor) descriptor.writable = true;
+        Object.defineProperty(target, descriptor.key, descriptor);
+      }
+    }
+
+    return function (Constructor, protoProps, staticProps) {
+      if (protoProps) defineProperties(Constructor.prototype, protoProps);
+      if (staticProps) defineProperties(Constructor, staticProps);
+      return Constructor;
+    };
+  }();
+
   babelHelpers.extends = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i];
@@ -15,6 +39,47 @@
     return target;
   };
 
+  babelHelpers.get = function get(object, property, receiver) {
+    if (object === null) object = Function.prototype;
+    var desc = Object.getOwnPropertyDescriptor(object, property);
+
+    if (desc === undefined) {
+      var parent = Object.getPrototypeOf(object);
+
+      if (parent === null) {
+        return undefined;
+      } else {
+        return get(parent, property, receiver);
+      }
+    } else if ("value" in desc) {
+      return desc.value;
+    } else {
+      var getter = desc.get;
+
+      if (getter === undefined) {
+        return undefined;
+      }
+
+      return getter.call(receiver);
+    }
+  };
+
+  babelHelpers.inherits = function (subClass, superClass) {
+    if (typeof superClass !== "function" && superClass !== null) {
+      throw new TypeError("Super expression must either be null or a function, not " + typeof superClass);
+    }
+
+    subClass.prototype = Object.create(superClass && superClass.prototype, {
+      constructor: {
+        value: subClass,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+    if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
+  };
+
   babelHelpers.objectWithoutProperties = function (obj, keys) {
     var target = {};
 
@@ -25,6 +90,14 @@
     }
 
     return target;
+  };
+
+  babelHelpers.possibleConstructorReturn = function (self, call) {
+    if (!self) {
+      throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
+    }
+
+    return call && (typeof call === "object" || typeof call === "function") ? call : self;
   };
 
   babelHelpers.slicedToArray = function () {
@@ -218,7 +291,7 @@ function getArea(shape, options) {
 	var area = 0;
 	switch (shape) {
 		case shapeType.triangle:
-			area = .5 * options.width * options.height;
+			area = 0.5 * options.width * options.height;
 			break;
 	}
 	return area;
@@ -351,38 +424,195 @@ getJSON("./assets/package.json").then(function (json) {
 	console.error(error);
 });
 
-var p1 = new Promise(function (resolve, reject) {
-	setTimeout(function () {
-		return reject(new Error('fail'));
-	}, 2000);
+// var p1 = new Promise(function(resolve, reject) {
+// 	setTimeout(() => reject(new Error('fail')), 2000);
+// });
+
+// var p2 = new Promise(function(resolve, reject) {
+// 	setTimeout(() => resolve(p1), 1000);
+// });
+
+// p2.then(result => console.log(result))
+// 	.catch(error => console.log(error));
+
+
+getJSON('./assets/package.json').then(function (post) {
+	console.table(post);
+	return getJSON('./assets/packages.json');
+}).then(function (comments) {
+	return console.log(comments);
+}).catch(function (err) {
+	return console.error('错误:', err);
 });
 
-var p2 = new Promise(function (resolve, reject) {
-	setTimeout(function () {
-		return resolve(p1);
-	}, 1000);
-});
-
-p2.then(function (result) {
-	return console.log(result);
+var someAsyncThing = function someAsyncThing() {
+	return new Promise(function (resolve, reject) {
+		// 下面一行会报错，因为x没有声明
+		resolve(x + 2);
+	});
+};
+someAsyncThing().then(function () {
+	return someOtherAsyncThing();
 }).catch(function (error) {
+	console.error('oh no', error);
+	// 下面一行会报错，因为y没有声明
+	//yfd + 2;
+}).catch(function (error) {
+	console.error('carry on', error);
+});
+
+var p = Promise.race([fetch('./assets/package.json'), new Promise(function (resolve, reject) {
+	setTimeout(function () {
+		return reject(new Error('request timeout'));
+	}, 5000);
+})]);
+p.then(function (response) {
+	return console.log(response);
+});
+p.catch(function (error) {
 	return console.log(error);
 });
-'use strict';
 
-var getRootPath2 = function getRootPath2(t) {
-  //获取当前网址
-  var curWwwPath = window.document.location.href;
-  //获取主机地址之后的目录，如： /ems/Pages/Basic/Person.jsp
-  var pathName = window.document.location.pathname;
-  var pos = curWwwPath.indexOf(pathName);
-  //获取主机地址，如： http://localhost:8080
-  var localhostPath = curWwwPath.substring(0, pos);
-  //获取带"/"的项目名，如：/ems
-  var projectName = pathName.substring(0, pathName.substr(1).indexOf('/') + 1);
-  if (t === 0) {
-    return localhostPath + projectName;
-  } else {
-    return localhostPath;
-  }
-};
+fetch('./assets/package.json').then(function (response) {
+	return response.json();
+}).then(function (data) {
+	console.log(data);
+}).catch(function (e) {
+	console.error(e);
+});
+
+var p = Promise.resolve('Hello');
+
+p.then(function (s) {
+	console.log(s);
+});
+
+//产生一个随机数
+var num = Math.random();
+console.log('your num is ' + num);
+
+//async异步处理
+// async function f() {
+// 	return 'hello world,this is async';
+// }
+
+// f().then(v => console.log(v));
+
+// async function f() {
+// 	throw new Error('出错了');
+// }
+
+// f().then(
+// 	v => console.log(v),
+// 	e => console.warn(e)
+// )
+
+// async function getTitle(url) {
+// 	let response = await fetch(url);
+// 	let html = await response.text();
+// 	return html.match(/<title>([\s\S]+)<\/title>/i)[1];
+// }
+// getTitle('https://tc39.github.io/ecma262/').then(console.log);
+// console.warn('这里会先执行');
+
+// async function f() {
+// 	return await 123;
+// }
+
+// f().then(v => console.log(v));
+
+// async function f() {
+// 	await Promise.reject('出错了1')
+// 		.catch(e => console.log(e));
+// 	return await Promise.resolve('hello world');
+// }
+
+// f()
+// 	.then(v => console.log(v));
+
+// async function chainAnimationsAsync(elem, animations) {
+// 	var ret = null;
+// 	try {
+// 		for (var anim of animations) {
+// 			ret = await anim(elem);
+// 		}
+// 	} catch (e) {
+
+// 	}
+// 	return ret;
+// }
+
+// function Point(x, y) {
+// 	this.x = x;
+// 	this.y = y;
+// }
+
+// Point.prototype.toString = function() {
+// 	return '(' + this.x + ',' + this.y + ')';
+// };
+
+// var p = new Point(2, 3);
+// console.log(p.toString());
+
+var Point = function () {
+	function Point(x, y) {
+		babelHelpers.classCallCheck(this, Point);
+
+		this.x = x;
+		this.y = y;
+	}
+
+	// methods
+
+
+	babelHelpers.createClass(Point, [{
+		key: 'toString',
+		value: function toString() {
+			return '(' + this.x + ',' + this.y + ')';
+		}
+	}, {
+		key: 'toValue',
+		value: function toValue() {
+			return this.x * this.y;
+		}
+	}]);
+	return Point;
+}();
+
+var p = new Point(2, 3);
+console.log(p.toString());
+
+babelHelpers.extends(Point.prototype, {
+	getArea: function getArea() {
+		return this.x * this.y * 0.5;
+	}
+});
+
+var ColorPoint = function (_Point) {
+	babelHelpers.inherits(ColorPoint, _Point);
+
+	function ColorPoint(x, y, color) {
+		babelHelpers.classCallCheck(this, ColorPoint);
+
+		var _this = babelHelpers.possibleConstructorReturn(this, (ColorPoint.__proto__ || Object.getPrototypeOf(ColorPoint)).call(this, x, y));
+
+		_this.color = color;
+		return _this;
+	}
+
+	babelHelpers.createClass(ColorPoint, [{
+		key: 'toString',
+		value: function toString() {
+			return this.color + ' ' + babelHelpers.get(ColorPoint.prototype.__proto__ || Object.getPrototypeOf(ColorPoint.prototype), 'toString', this).call(this);
+		}
+	}]);
+	return ColorPoint;
+}(Point);
+
+var cp = new ColorPoint(2, 5, 'red');
+console.log(cp.toString());
+
+// import * as app from './index/main';
+
+// console.log(app.firstName);
+// console.log(app.lastName);

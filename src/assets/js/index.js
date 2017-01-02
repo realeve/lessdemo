@@ -74,7 +74,7 @@ function getArea(shape, options) {
 	var area = 0;
 	switch (shape) {
 		case shapeType.triangle:
-			area = .5 * options.width * options.height;
+			area = 0.5 * options.width * options.height;
 			break;
 	}
 	return area;
@@ -163,13 +163,174 @@ getJSON("./assets/package.json")
 		console.error(error);
 	});
 
-var p1 = new Promise(function(resolve, reject) {
-	setTimeout(() => reject(new Error('fail')), 2000);
+// var p1 = new Promise(function(resolve, reject) {
+// 	setTimeout(() => reject(new Error('fail')), 2000);
+// });
+
+// var p2 = new Promise(function(resolve, reject) {
+// 	setTimeout(() => resolve(p1), 1000);
+// });
+
+// p2.then(result => console.log(result))
+// 	.catch(error => console.log(error));
+
+
+getJSON('./assets/package.json')
+	.then(post => {
+		console.table(post);
+		return getJSON('./assets/packages.json');
+	})
+	.then(
+		comments => console.log(comments)
+	).catch(
+		err => console.error('错误:', err)
+	);
+
+var someAsyncThing = function() {
+	return new Promise(function(resolve, reject) {
+		// 下面一行会报错，因为x没有声明
+		resolve(x + 2);
+	});
+};
+someAsyncThing().then(function() {
+	return someOtherAsyncThing();
+}).catch(function(error) {
+	console.error('oh no', error);
+	// 下面一行会报错，因为y没有声明
+	//yfd + 2;
+}).catch(function(error) {
+	console.error('carry on', error);
 });
 
-var p2 = new Promise(function(resolve, reject) {
-	setTimeout(() => resolve(p1), 1000);
+var p = Promise.race([
+	fetch('./assets/package.json'),
+	new Promise(function(resolve, reject) {
+		setTimeout(() => reject(new Error('request timeout')), 5000);
+	})
+]);
+p.then(response => console.log(response));
+p.catch(error => console.log(error));
+
+fetch('./assets/package.json').then(response => {
+	return response.json();
+}).then(function(data) {
+	console.log(data);
+}).catch(function(e) {
+	console.error(e);
 });
 
-p2.then(result => console.log(result))
-	.catch(error => console.log(error));
+var p = Promise.resolve('Hello');
+
+p.then(function(s) {
+	console.log(s);
+});
+
+//产生一个随机数
+var num = Math.random();
+console.log(`your num is ${num}`);
+
+//async异步处理
+// async function f() {
+// 	return 'hello world,this is async';
+// }
+
+// f().then(v => console.log(v));
+
+// async function f() {
+// 	throw new Error('出错了');
+// }
+
+// f().then(
+// 	v => console.log(v),
+// 	e => console.warn(e)
+// )
+
+// async function getTitle(url) {
+// 	let response = await fetch(url);
+// 	let html = await response.text();
+// 	return html.match(/<title>([\s\S]+)<\/title>/i)[1];
+// }
+// getTitle('https://tc39.github.io/ecma262/').then(console.log);
+// console.warn('这里会先执行');
+
+// async function f() {
+// 	return await 123;
+// }
+
+// f().then(v => console.log(v));
+
+// async function f() {
+// 	await Promise.reject('出错了1')
+// 		.catch(e => console.log(e));
+// 	return await Promise.resolve('hello world');
+// }
+
+// f()
+// 	.then(v => console.log(v));
+
+// async function chainAnimationsAsync(elem, animations) {
+// 	var ret = null;
+// 	try {
+// 		for (var anim of animations) {
+// 			ret = await anim(elem);
+// 		}
+// 	} catch (e) {
+
+// 	}
+// 	return ret;
+// }
+
+// function Point(x, y) {
+// 	this.x = x;
+// 	this.y = y;
+// }
+
+// Point.prototype.toString = function() {
+// 	return '(' + this.x + ',' + this.y + ')';
+// };
+
+// var p = new Point(2, 3);
+// console.log(p.toString());
+
+class Point {
+	constructor(x, y) {
+		this.x = x;
+		this.y = y;
+	}
+
+	// methods
+	toString() {
+		return '(' + this.x + ',' + this.y + ')';
+	}
+
+	toValue() {
+		return this.x * this.y;
+	}
+}
+var p = new Point(2, 3);
+console.log(p.toString());
+
+Object.assign(Point.prototype, {
+	getArea() {
+		return this.x * this.y * 0.5;
+	}
+});
+
+class ColorPoint extends Point {
+	constructor(x, y, color) {
+		super(x, y);
+		this.color = color;
+	}
+
+	toString() {
+		return this.color + ' ' + super.toString();
+	}
+}
+
+let cp = new ColorPoint(2, 5, 'red');
+console.log(cp.toString());
+
+// import * as app from './index/main';
+
+// console.log(app.firstName);
+// console.log(app.lastName);

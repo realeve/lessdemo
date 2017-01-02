@@ -1,6 +1,9 @@
 'use strict';
 
-var getRootPath2 = function getRootPath2(t) {
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var getRootPath = function getRootPath(t) {
   //获取当前网址
   var curWwwPath = window.document.location.href;
   //获取主机地址之后的目录，如： /ems/Pages/Basic/Person.jsp
@@ -16,3 +19,12 @@ var getRootPath2 = function getRootPath2(t) {
     return localhostPath;
   }
 };
+
+var firstName = 'Michael';
+var lastName = 'Jackson22';
+var year = 1958;
+
+exports.firstName = firstName;
+exports.lastName = lastName;
+exports.year = year;
+exports.getRootPath = getRootPath;
