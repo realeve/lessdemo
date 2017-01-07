@@ -47,7 +47,8 @@ var SRC = dirName.SRC,
 
 var getAssetsOrder = require('./settings/assetsOrder.js');
 var assetsListOrder = getAssetsOrder(SRC.css, SRC.jsDest);
-assetsListOrder.js = [SRC.jsDest + '/babelHelpers.js'].concat(assetsListOrder.js);
+
+var taskName = require('./settings/task.js');
 
 /**
  * 文件复制
@@ -70,8 +71,14 @@ gulp.task('copyimg', function() {
 	}
 });
 
+gulp.task('copyfont', function() {
+	return gulp.src(SRC.fonts)
+		.pipe(gulp.dest(SRC.fontsDest))
+		.pipe(connect.reload());
+});
+
 gulp.task('copyhtml', function() {
-	return gulp.src('./src/index.html')
+	return gulp.src('./src/' + taskName + '.html')
 		.pipe(gulp.dest(SRC.contentDest))
 		.pipe(connect.reload());
 });
@@ -79,8 +86,8 @@ gulp.task('copyhtml', function() {
 gulp.task('less', function() {
 
 	console.log('(1/4)正在编译less文件...');
-
-	return gulp.src(['src/less/*.less', '!src/less/sprite.less'])
+	//, '!src/less/sprite.less'
+	return gulp.src(['src/less/**/*.less', 'src/less/*.less'])
 		.pipe(plumber({ //plumber触发错误提示
 			errorHandler: onError
 		}))
@@ -109,19 +116,22 @@ gulp.task('css', function() {
 
 //开发环境
 gulp.task('js', function() {
-	return gulp.src(SRC.js + '/*.js')
+	var jsList = getAssetsOrder(SRC.css, SRC.js);
+	return gulp.src(jsList.js)
 		.pipe(plumber({ //plumber触发错误提示
 			errorHandler: onError
 		}))
 		.pipe(babel({
 			presets: [
-				'es2015', //转换es6代码
-				"es2016",
+				["es2015", {
+					"modules": false
+				}], //转换es6代码
+				'es2016',
 				'stage-0', //指定转换es7代码的语法提案阶段
 			],
 			plugins: [
 				'transform-object-assign', //转换es6 Object.assign插件
-				'external-helpers', //将es6代码转换后使用的公用函数单独抽出来保存为babelHelpers
+				//'external-helpers', //将es6代码转换后使用的公用函数单独抽出来保存为babelHelpers
 				['transform-es2015-classes', {
 					"loose": false
 				}], //转换es6 class插件
@@ -130,15 +140,18 @@ gulp.task('js', function() {
 				}], //转换es6 module插件
 
 				//'transform-runtime' //报 runtime错误
-
 				// , ["transform-regenerator", {
 				// 	asyncGenerators: false, // true by default
 				// 	generators: false, // true by default
 				// 	async: false // true by default
 				// }]
+			],
+			"ignore": [
+				SRC.js + "/vue.js",
+				SRC.js + "/elementUI.js"
 			]
 		}))
-		.pipe(babelHelpers('babelHelpers.js'))
+		//.pipe(babelHelpers('babelHelpers.js'))
 		.pipe(gulp.dest(SRC.jsDest));
 });
 
@@ -157,7 +170,7 @@ gulp.task('browser-js', function() {
 		})
 		.transform(babelify, {
 			presets: [
-				'es2015', //转换es6代码
+				'es2015',
 				"es2016",
 				'stage-0', //指定转换es7代码的语法提案阶段
 			],
@@ -181,22 +194,22 @@ gulp.task('browser-js', function() {
 		.pipe(plumber({ //plumber触发错误提示
 			errorHandler: onError
 		}))
-		.pipe(source('./index.js')) //将常规流转换为包含Stream的vinyl对象，并且重命名 //'./index.js'
+		.pipe(source('./' + taskName + '.js')) //将常规流转换为包含Stream的vinyl对象，并且重命名
 		.pipe(buffer()) //将vinyl对象内容中的Stream转换为Buffer
 		.pipe(babelHelpers('babelHelpers.js'))
 		.pipe(gulp.dest(SRC.jsDest));
 });
 
 gulp.task('concat-js', function() {
-	return gulp.src(assetsListOrder.js)
+	return gulp.src([SRC.jsDest + '/babelHelpers.js'].concat(assetsListOrder.js))
 		.pipe(plumber({ //plumber触发错误提示
 			errorHandler: onError
 		}))
 		//.pipe(sourcemaps.init()) //生成sourcemap
-		.pipe(jshint()) // 对这些更改过的文件做一些特殊的处理...
+		.pipe(gulpif(PRODUCTION, jshint())) // 对这些更改过的文件做一些特殊的处理...
 		//.pipe(header('(function () {')) // 比如 jshinting ^^^
 		//.pipe(footer('})();')) // 增加一些类似模块封装的东西
-		.pipe(concat('index.js'))
+		.pipe(concat(taskName + '.js'))
 		.pipe(gulpif(!PRODUCTION, gulp.dest(SRC.jsDest))) //开发测试期间，有sourceMap
 		.pipe(gulpif(PRODUCTION, uglify())) //压缩
 		.pipe(gulpif(PRODUCTION, gulp.dest(SRC.jsDevelop))) //正式发布，无sourceMap
@@ -253,7 +266,7 @@ gulp.task("zip-html", function() {
 		minifyCSS: true //压缩页面CSS
 	};
 
-	return gulp.src("src/index.html")
+	return gulp.src("src/" + taskName + ".html")
 		.pipe(revReplace({
 			manifest: manifest
 		}))
@@ -286,9 +299,9 @@ gulp.task('watch', function() {
 
 gulp.task('default', function(callback) {
 	if (PRODUCTION) {
-		runSequence('clean', 'sprite', 'less', ['img', 'css', 'browser-js'], 'concat-js', 'revision', ['zip-html', 'handlejs', 'copyimg', 'copyhtml']);
+		runSequence('clean', /*'sprite',*/ 'less', ['img', 'css', 'browser-js'], 'concat-js', 'revision', ['zip-html', 'handlejs', 'copyimg', 'copyfont', 'copyhtml']);
 	} else {
-		runSequence('clean', 'sprite', 'less', ['css', 'js'], 'concat-js', ['copyimg', 'copyhtml']);
+		runSequence('clean', /*'sprite',*/ 'less', ['css', 'js'], 'concat-js', ['copyimg', 'copyfont', 'copyhtml']);
 	}
 });
 

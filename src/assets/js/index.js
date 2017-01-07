@@ -1,336 +1,111 @@
-const setData = ((
-	data,
-	id = '#text1'
-) => document.querySelector(id).innerText = data);
+const getUrlParam = (name) => {
+	var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+	var r = encodeURI(window.location.search).substr(1).match(reg);
+	if (r !== null) return decodeURI(r[2]);
+	return null;
+};
+const isGM = (getUrlParam('gm') !== null) ? 1 : 0;
 
-var ac = 'test';
-var data = 211;
-var b = {
-	ac,
-	data
+const scoreList = [{
+	label: '优秀',
+	value: '10'
+}, {
+	label: '良好',
+	value: '9'
+}, {
+	label: '称职',
+	value: '7'
+}, {
+	label: '基本称职',
+	value: '5'
+}, {
+	label: '不称职',
+	value: '3'
+}];
+
+const DEFAULT_SCORE = '7';
+
+var userList = (type) => {
+	var list = [
+		[{
+			name: '张三',
+			dpt: '某部门',
+			desc: '主任，xx书记(兼)',
+			value: DEFAULT_SCORE
+		}, {
+			name: '张三2',
+			dpt: '某部门',
+			desc: '主任，xx书记(兼)',
+			value: DEFAULT_SCORE
+		}, {
+			name: '张三3',
+			dpt: '某部门',
+			desc: '主任，xx书记(兼)',
+			value: DEFAULT_SCORE
+		}],
+		[]
+	];
+	return list[type];
 };
 
-setData(JSON.stringify(b));
-const a = new Array(9).fill('🚀');
-setData(JSON.stringify(a), '#text2');
-
-var sum = (num1, num2) => {
-	num1 = num1 * 2;
-	return num1 + num2;
-};
-
-var target = {
-	a: 1
-};
-
-var source1 = {
-	b: 2
-};
-var source2 = {
-	c: 3
-};
-
-Object.assign(target, source1, source2);
-
-setData(JSON.stringify(target), '#text3');
-
-let {
-	keys,
-	values,
-	entries
-} = Object;
-let obj = {
-	a: 1,
-	b: 2,
-	c: 3
-};
-
-for (let key of keys(obj)) {
-	console.log(key); // 'a', 'b', 'c'
-}
-
-for (let value of values(obj)) {
-	console.log(value); // 1, 2, 3
-}
-
-for (let [key, value] of entries(obj)) {
-	console.log([key, value]); // ['a', 1], ['b', 2], ['c', 3]
-}
-let {
-	x,
-	y,
-	...z
-} = {
-	x: 1,
-	y: 2,
-	a: 3,
-	b: 4
-};
-var shapeType = {
-	triangle: Symbol()
-};
-
-function getArea(shape, options) {
-	var area = 0;
-	switch (shape) {
-		case shapeType.triangle:
-			area = 0.5 * options.width * options.height;
-			break;
-	}
-	return area;
-}
-
-getArea(shapeType.triangle, {
-	width: 100,
-	height: 100
-});
-var s = new Set();
-
-[2, 3, 5, 4, 5, 2, 2].map(x => s.add(x));
-
-for (let i of s) {
-	console.log(i);
-}
-var array = [2, 3, 5, 4, 5, 2, 2];
-console.log([...new Set(array)]);
-
-var engines = new Set(["Gecko", "Trident", "Webkit", "Webkit"]);
-for (var e of engines) {
-	console.log(e);
-}
-
-var es6 = {
-	edition: 6,
-	committee: "TC39",
-	standard: "ECMA-262"
-};
-
-for (let e in es6) {
-	console.log(e);
-}
-
-//需使用browserify加载
-// var myIterable = {};
-// myIterable[Symbol.iterator] = function*() {
-// 	yield 1;
-// 	yield 2;
-// 	yield 3;
-// };
-// console.log([...myIterable]);
-
-var test = 3234;
-console.log(test);
-
-//Promise 实例
-let promise = new Promise(function(resolve, reject) {
-	console.log('Promise');
-	resolve();
-});
-
-promise.then(function() {
-	console.log('成功的回调函数');
-});
-
-console.log('Hi!');
-
-var getJSON = function(url) {
-	var promise = new Promise(function(resolve, reject) {
-		var client = new XMLHttpRequest();
-		client.open("GET", url);
-		client.onreadystatechange = handler;
-		client.responseType = "json";
-		client.setRequestHeader("Accept", "application/json");
-		client.send();
-
-		function handler() {
-			if (this.readyState !== 4) {
-				return;
-			}
-			if (this.status == 200) {
-				resolve(this.response);
-			} else {
-				reject(new Error(this.statusText));
-			}
+var vm = new Vue({
+	el: '#app',
+	data: {
+		scoreList,
+		users: userList(0),
+		voteType: 0,
+		showList: false,
+		voteNum: new Array(5).fill(0),
+		curLimit: {
+			excellent: 0,
+			good: 0
 		}
-	});
-	return promise;
-};
-
-getJSON("./assets/package.json")
-	.then(function(json) {
-		console.log(json);
-	}, function(error) {
-		console.error(error);
-	});
-
-// var p1 = new Promise(function(resolve, reject) {
-// 	setTimeout(() => reject(new Error('fail')), 2000);
-// });
-
-// var p2 = new Promise(function(resolve, reject) {
-// 	setTimeout(() => resolve(p1), 1000);
-// });
-
-// p2.then(result => console.log(result))
-// 	.catch(error => console.log(error));
-
-
-getJSON('./assets/package.json')
-	.then(post => {
-		console.table(post);
-		return getJSON('./assets/packages.json');
-	})
-	.then(
-		comments => console.log(comments)
-	).catch(
-		err => console.error('错误:', err)
-	);
-
-var someAsyncThing = function() {
-	return new Promise(function(resolve, reject) {
-		// 下面一行会报错，因为x没有声明
-		resolve(x + 2);
-	});
-};
-someAsyncThing().then(function() {
-	return someOtherAsyncThing();
-}).catch(function(error) {
-	console.error('oh no', error);
-	// 下面一行会报错，因为y没有声明
-	//yfd + 2;
-}).catch(function(error) {
-	console.error('carry on', error);
-});
-
-var p = Promise.race([
-	fetch('./assets/package.json'),
-	new Promise(function(resolve, reject) {
-		setTimeout(() => reject(new Error('request timeout')), 5000);
-	})
-]);
-p.then(response => console.log(response));
-p.catch(error => console.log(error));
-
-fetch('./assets/package.json').then(response => {
-	return response.json();
-}).then(function(data) {
-	console.log(data);
-}).catch(function(e) {
-	console.error(e);
-});
-
-var p = Promise.resolve('Hello');
-
-p.then(function(s) {
-	console.log(s);
-});
-
-//产生一个随机数
-var num = Math.random();
-console.log(`your num is ${num}`);
-
-//async异步处理
-// async function f() {
-// 	return 'hello world,this is async';
-// }
-
-// f().then(v => console.log(v));
-
-// async function f() {
-// 	throw new Error('出错了');
-// }
-
-// f().then(
-// 	v => console.log(v),
-// 	e => console.warn(e)
-// )
-
-// async function getTitle(url) {
-// 	let response = await fetch(url);
-// 	let html = await response.text();
-// 	return html.match(/<title>([\s\S]+)<\/title>/i)[1];
-// }
-// getTitle('https://tc39.github.io/ecma262/').then(console.log);
-// console.warn('这里会先执行');
-
-// async function f() {
-// 	return await 123;
-// }
-
-// f().then(v => console.log(v));
-
-// async function f() {
-// 	await Promise.reject('出错了1')
-// 		.catch(e => console.log(e));
-// 	return await Promise.resolve('hello world');
-// }
-
-// f()
-// 	.then(v => console.log(v));
-
-// async function chainAnimationsAsync(elem, animations) {
-// 	var ret = null;
-// 	try {
-// 		for (var anim of animations) {
-// 			ret = await anim(elem);
-// 		}
-// 	} catch (e) {
-
-// 	}
-// 	return ret;
-// }
-
-// function Point(x, y) {
-// 	this.x = x;
-// 	this.y = y;
-// }
-
-// Point.prototype.toString = function() {
-// 	return '(' + this.x + ',' + this.y + ')';
-// };
-
-// var p = new Point(2, 3);
-// console.log(p.toString());
-
-class Point {
-	constructor(x, y) {
-		this.x = x;
-		this.y = y;
-	}
-
-	// methods
-	toString() {
-		return '(' + this.x + ',' + this.y + ')';
-	}
-
-	toValue() {
-		return this.x * this.y;
-	}
-}
-var p = new Point(2, 3);
-console.log(p.toString());
-
-Object.assign(Point.prototype, {
-	getArea() {
-		return this.x * this.y * 0.5;
+	},
+	computed: {
+		scoreLimit: () => {
+			let obj = {
+				excellent: 0,
+				good: 0
+			};
+			list = vm.users.forEach((item) => {
+				obj.excellent += (item.value == '10');
+				obj.good += (item.value == '9');
+			});
+			return obj;
+		}
+	},
+	watch: {
+		showList: () => {
+			console.log('返回列表');
+			// vm.$message({
+			// 	message: '恭喜你，这是一条成功消息',
+			// 	type: 'success'
+			// });
+		},
+		users: {
+			handler: () => {
+				let scoreLimit = vm.scoreLimit;
+				if (scoreLimit.excellent > 2 || scoreLimit.good > 2) {
+					console.log('最多只允许选取6名优秀/良好');
+				}
+				vm.curLimit = scoreLimit;
+			},
+			deep: true
+		}
+	},
+	methods: {
+		submit: () => {
+			var votes = [];
+			votes = vm.users.map(function(item) {
+				return [item.name, item.dpt, item.value, isGM];
+			});
+			console.log(JSON.stringify(votes));
+			vm.voteNum[vm.voteType] = 1;
+			vm.back();
+			//write the data to localStorage
+		},
+		back: () => {
+			vm.showList = true;
+		}
 	}
 });
-
-class ColorPoint extends Point {
-	constructor(x, y, color) {
-		super(x, y);
-		this.color = color;
-	}
-
-	toString() {
-		return this.color + ' ' + super.toString();
-	}
-}
-
-let cp = new ColorPoint(2, 5, 'red');
-console.log(cp.toString());
-
-// import * as app from './index/main';
-
-// console.log(app.firstName);
-// console.log(app.lastName);
